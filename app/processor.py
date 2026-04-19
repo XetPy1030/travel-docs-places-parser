@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import time
 from datetime import datetime
 from pathlib import Path
@@ -22,6 +23,7 @@ class AttractionProcessor:
     """Main processor for attractions"""
 
     CACHE_VERSION = "2.0"
+    CONFIDENCE_THRESHOLD = 0.7
 
     def __init__(
         self,
@@ -46,7 +48,13 @@ class AttractionProcessor:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.parser = docx_parser or DOCXParser()
-        self.ai_client = ai_client or OpenRouterClient(openrouter_api_key, model=model)
+        self.ai_client = ai_client or OpenRouterClient(
+            openrouter_api_key,
+            model=model,
+            max_retries=2,
+            error_hook=self._on_ai_error,
+            log_fn=log_fn,
+        )
         self.image_searcher = image_searcher or ImageSearcher()
         self.normalizer = normalizer if normalizer is not None else DistrictNormalizer(districts_json)
         self._sleep = sleep_fn or time.sleep
@@ -68,6 +76,10 @@ class AttractionProcessor:
             "with_photo": 0,
             "with_min_paragraphs": 0,
             "high_confidence": 0,
+            "low_confidence": 0,
+            "list_like_descriptions": 0,
+            "rejected_descriptions": 0,
+            "ai_errors": 0,
         }
         self.config_signature = hashlib.md5(
             json.dumps(
@@ -151,6 +163,10 @@ class AttractionProcessor:
             }
         )
 
+    def _on_ai_error(self, message: str) -> None:
+        self.quality_stats["ai_errors"] += 1
+        self._log_error("openrouter", "ai_connection_error", message)
+
     def _get_file_hash(self, file_path: str) -> str:
         """Get hash of file content"""
         try:
@@ -174,6 +190,55 @@ class AttractionProcessor:
 
     def _validate_extracted_attraction(self, attr_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return validation.validate_extracted_attraction(attr_data)
+
+    def _expand_list_like_attractions(
+        self,
+        attractions_data: List[Dict[str, Any]],
+        source_text: str,
+    ) -> List[Dict[str, Any]]:
+        """
+        If LLM returned one list-like object, split it into multiple attractions.
+        """
+        expanded: List[Dict[str, Any]] = []
+        for item in attractions_data:
+            name = item.get("name", "")
+            brief = item.get("brief_description", "")
+            source_fragment = item.get("source_fragment", "")
+            blob = "\n".join([name, brief, source_fragment, source_text[:1200]])
+            list_lines = []
+            for line in blob.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                match = re.match(r"^\d+[.)]?\s*(.+)$", line)
+                if match:
+                    list_lines.append(match.group(1).strip())
+
+            if len(list_lines) >= 3:
+                try:
+                    base_confidence = float(item.get("confidence", 0.5))
+                except (TypeError, ValueError):
+                    base_confidence = 0.5
+                for line in list_lines[:30]:
+                    if len(line) < 4:
+                        continue
+                    parts = [part.strip() for part in line.split(" - ", 1)]
+                    place_name = parts[0]
+                    place_settlement = parts[1] if len(parts) > 1 else item.get("settlement", "")
+                    expanded.append(
+                        {
+                            "name": place_name,
+                            "settlement": place_settlement,
+                            "brief_description": line,
+                            "type": item.get("type", "не определено"),
+                            "confidence": min(base_confidence, 0.55),
+                            "source_fragment": line[:200],
+                        }
+                    )
+                continue
+
+            expanded.append(item)
+        return expanded
 
     def process_file(self, file_path: str, district_folder: str) -> List[Attraction]:
         """Process single DOCX file"""
@@ -230,6 +295,8 @@ class AttractionProcessor:
             if cleaned:
                 cleaned_attractions_data.append(cleaned)
 
+        cleaned_attractions_data = self._expand_list_like_attractions(cleaned_attractions_data, text)
+
         if not cleaned_attractions_data:
             self._log_error(file_path, "validation_error", "После валидации не осталось валидных объектов")
             return []
@@ -264,21 +331,44 @@ class AttractionProcessor:
             photo_url = ""
             photo_source = ""
             photo_confidence = 0.0
+            photo_gallery_urls: List[str] = []
+            photo_gallery_sources: List[str] = []
             if not self.skip_photos:
-                photo_url, photo_source, photo_confidence = self.image_searcher.find_best_photo(
+                photo_result = self.image_searcher.find_best_photo(
                     attr_data.get("name", ""),
                     district,
                     settlement,
                 )
+                photo_url = photo_result.get("primary_url", "")
+                photo_source = photo_result.get("primary_source", "")
+                photo_confidence = float(photo_result.get("primary_confidence", 0.0))
+                photo_gallery_urls = photo_result.get("gallery_urls", [])
+                photo_gallery_sources = photo_result.get("gallery_sources", [])
 
             # Create attraction object
             description_html = enrichment.get("description_html", "")
             paragraph_count = self._count_html_paragraphs(description_html)
-            if paragraph_count >= self.min_description_paragraphs:
+            is_low_confidence = attr_data.get("confidence", 0.0) < self.CONFIDENCE_THRESHOLD
+            is_list_like = validation.is_list_like_text(description_html)
+            has_artifacts = self._has_language_artifacts(description_html)
+            if is_low_confidence:
+                self.quality_stats["low_confidence"] += 1
+            if is_list_like:
+                self.quality_stats["list_like_descriptions"] += 1
+
+            description_is_valid = (
+                paragraph_count >= self.min_description_paragraphs
+                and not has_artifacts
+                and not is_low_confidence
+                and not is_list_like
+            )
+            if description_is_valid:
                 self.quality_stats["with_min_paragraphs"] += 1
+            else:
+                self.quality_stats["rejected_descriptions"] += 1
             if photo_url:
                 self.quality_stats["with_photo"] += 1
-            if attr_data.get("confidence", 0) >= 0.7:
+            if attr_data.get("confidence", 0) >= self.CONFIDENCE_THRESHOLD:
                 self.quality_stats["high_confidence"] += 1
 
             attraction = Attraction(
@@ -295,6 +385,10 @@ class AttractionProcessor:
                     "source_fragment": attr_data.get("source_fragment", ""),
                     "confidence": attr_data.get("confidence", 0.5),
                     "raw_settlement": raw_settlement,
+                    "photo_urls": photo_gallery_urls,
+                    "photo_sources": photo_gallery_sources,
+                    "description_quality_valid": description_is_valid,
+                    "description_is_list_like": is_list_like,
                     "interesting_facts": enrichment.get("interesting_facts", []),
                     "visiting_info": enrichment.get("visiting_info", ""),
                     "historical_period": enrichment.get("historical_period", ""),

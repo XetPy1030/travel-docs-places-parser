@@ -16,6 +16,24 @@ def has_language_artifacts(html: str) -> bool:
     return len(latin_words) > 0
 
 
+def is_list_like_text(text: str) -> bool:
+    """Грубая эвристика: текст похож на список пунктов, а не на цельное описание."""
+    if not text:
+        return False
+    normalized = text.replace("</p><p>", "\n").replace("<p>", "").replace("</p>", "")
+    lines = [line.strip() for line in normalized.splitlines() if line.strip()]
+    if len(lines) < 2:
+        return False
+    numbered = 0
+    bullets = 0
+    for line in lines:
+        if re.match(r"^\d+[.)-]\s+", line):
+            numbered += 1
+        if re.match(r"^[-*•]\s+", line):
+            bullets += 1
+    return (numbered + bullets) >= 2
+
+
 def normalize_settlement_pair(
     district: str,
     raw_settlement: str,

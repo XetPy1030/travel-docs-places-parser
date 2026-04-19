@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import time
 import json
+import re
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
@@ -80,6 +81,38 @@ class ImageSearcher:
             return True
         except Exception:
             return False
+
+    def _is_relevant_url(self, image_url: str, attraction_name: str, district: str, settlement: str = "") -> bool:
+        """
+        Lightweight relevance check by URL heuristics.
+        Reject obvious generic avatars/icons and prefer URLs with place-related tokens.
+        """
+        lower_url = image_url.lower()
+        negative_hints = (
+            "avatar",
+            "icon",
+            "sprite",
+            "logo",
+            "placeholder",
+            "thumb",
+            "default",
+            "profile",
+            "blank",
+        )
+        if any(hint in lower_url for hint in negative_hints):
+            return False
+
+        hint_text = f"{attraction_name} {district} {settlement}".lower()
+        tokens = [token for token in re.findall(r"[a-zа-яё0-9]{4,}", hint_text) if token]
+        # If URL has no textual hints at all, allow it but with lower confidence (handled by caller).
+        if not tokens:
+            return True
+        if any(token in lower_url for token in tokens[:8]):
+            return True
+
+        # Whitelist trusted host patterns where object name may not appear in URL.
+        trusted_hosts = ("wikimedia", "wikipedia", "tatarstan", "culture", "museum")
+        return any(host in lower_url for host in trusted_hosts)
 
     def _extract_urls_from_yandex_json(self, payload: Dict[str, Any]) -> List[str]:
         urls: List[str] = []
@@ -244,8 +277,8 @@ class ImageSearcher:
                 break
         return urls
 
-    def find_best_photo(self, attraction_name: str, district: str, settlement: str = "") -> Tuple[str, str, float]:
-        """Find best photo via API-first providers with confidence"""
+    def find_best_photo(self, attraction_name: str, district: str, settlement: str = "") -> Dict[str, Any]:
+        """Find best photo and photo gallery via API-first providers."""
         # Build search queries
         queries: List[str] = []
 
@@ -256,34 +289,79 @@ class ImageSearcher:
         queries.append(f"{attraction_name} {district} район Татарстан")
         queries.append(f"{attraction_name} Татарстан")
 
+        candidates: List[Tuple[str, str, float]] = []
+        seen: set[str] = set()
+
         for query in queries:
             self._log(f"    Searching: {query[:60]}...")
 
             # API-first #1: Wikimedia
             photo_url = self.search_wikimedia(query)
             if photo_url:
-                self._log("    ✓ Found on Wikimedia")
-                return photo_url, "wikimedia", 0.90
+                if (
+                    photo_url not in seen
+                    and self._is_relevant_url(photo_url, attraction_name, district, settlement)
+                ):
+                    seen.add(photo_url)
+                    candidates.append((photo_url, "wikimedia", 0.90))
 
             # API-first #2: Yandex Search API via official SDK (optional)
             yandex_urls = self.search_yandex_images(query)
             if yandex_urls:
-                self._log("    ✓ Found via Yandex Search API")
-                return yandex_urls[0], "yandex_search_api", 0.80
+                for url in yandex_urls:
+                    if url in seen:
+                        continue
+                    if not self._is_relevant_url(url, attraction_name, district, settlement):
+                        continue
+                    seen.add(url)
+                    candidates.append((url, "yandex_search_api", 0.80))
 
             # API-first #3: SerpAPI (optional)
             serpapi_urls = self.search_serpapi(query)
             if serpapi_urls:
-                self._log("    ✓ Found via SerpAPI")
-                return serpapi_urls[0], "serpapi", 0.75
+                for url in serpapi_urls:
+                    if url in seen:
+                        continue
+                    if not self._is_relevant_url(url, attraction_name, district, settlement):
+                        continue
+                    seen.add(url)
+                    candidates.append((url, "serpapi", 0.75))
 
             # API-first #4: Google CSE (optional)
             cse_urls = self.search_google_cse(query)
             if cse_urls:
-                self._log("    ✓ Found via Google CSE")
-                return cse_urls[0], "google_cse", 0.70
+                for url in cse_urls:
+                    if url in seen:
+                        continue
+                    if not self._is_relevant_url(url, attraction_name, district, settlement):
+                        continue
+                    seen.add(url)
+                    candidates.append((url, "google_cse", 0.70))
+
+            if candidates:
+                break
 
             self._sleep(1)  # Be polite
 
-        self._log("    ✗ No photo found")
-        return "", "", 0.0
+        if not candidates:
+            self._log("    ✗ No photo found")
+            return {
+                "primary_url": "",
+                "primary_source": "",
+                "primary_confidence": 0.0,
+                "gallery_urls": [],
+                "gallery_sources": [],
+            }
+
+        # Sort by confidence desc and keep top gallery
+        candidates.sort(key=lambda item: item[2], reverse=True)
+        primary_url, primary_source, primary_confidence = candidates[0]
+        gallery = candidates[:5]
+        self._log(f"    ✓ Found {len(gallery)} candidate images")
+        return {
+            "primary_url": primary_url,
+            "primary_source": primary_source,
+            "primary_confidence": primary_confidence,
+            "gallery_urls": [item[0] for item in gallery],
+            "gallery_sources": [item[1] for item in gallery],
+        }

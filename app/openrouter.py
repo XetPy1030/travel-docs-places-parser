@@ -50,9 +50,11 @@ class OpenRouterClient:
         self,
         api_key: str,
         model: str = "meta-llama/llama-3.1-70b-instruct",
+        max_retries: int = 2,
         client: Optional[OpenAI] = None,
         sleep_fn: Optional[Callable[[float], None]] = None,
         log_fn: Optional[Callable[..., None]] = None,
+        error_hook: Optional[Callable[[str], None]] = None,
     ) -> None:
         self.client = client or OpenAI(
             base_url="https://openrouter.ai/api/v1",
@@ -62,8 +64,11 @@ class OpenRouterClient:
         self.request_count = 0
         self.token_usage = 0
         self.prompt_version = "v2-structured-extraction"
+        self.max_retries = max(0, max_retries)
+        self.failed_requests = 0
         self._sleep = sleep_fn or time.sleep
         self._log = log_fn or print
+        self._error_hook = error_hook
 
     def chat_completion(
         self,
@@ -72,26 +77,33 @@ class OpenRouterClient:
         temperature: float = 0.3,
     ) -> str:
         """Send chat completion request"""
-        try:
-            self.request_count += 1
+        self.request_count += 1
+        last_error = ""
+        for attempt in range(self.max_retries + 1):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                )
 
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature,
-            )
+                # Track token usage
+                if hasattr(response, "usage") and response.usage:
+                    self.token_usage += response.usage.total_tokens
 
-            # Track token usage
-            if hasattr(response, "usage") and response.usage:
-                self.token_usage += response.usage.total_tokens
+                return response.choices[0].message.content or ""
 
-            return response.choices[0].message.content or ""
+            except Exception as e:
+                last_error = str(e)
+                self._log(f"  OpenRouter error: {e}")
+                if attempt < self.max_retries:
+                    self._sleep(min(2 + attempt, 4))
 
-        except Exception as e:
-            self._log(f"  OpenRouter error: {e}")
-            self._sleep(2)
-            return ""
+        self.failed_requests += 1
+        if self._error_hook:
+            self._error_hook(last_error or "Unknown OpenRouter error")
+        return ""
 
     def extract_attractions_from_text(
         self,

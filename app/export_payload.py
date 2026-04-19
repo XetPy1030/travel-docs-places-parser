@@ -16,14 +16,23 @@ def build_quality_stats(
     success_files_count: int,
     errors_count: int,
 ) -> Dict[str, Any]:
+    with_photo = quality_stats.get("with_photo", 0)
+    with_min_paragraphs = quality_stats.get("with_min_paragraphs", 0)
+    high_confidence = quality_stats.get("high_confidence", 0)
+    low_confidence = quality_stats.get("low_confidence", 0)
+    list_like_descriptions = quality_stats.get("list_like_descriptions", 0)
+    rejected_descriptions = quality_stats.get("rejected_descriptions", 0)
+    ai_errors = quality_stats.get("ai_errors", 0)
     return {
-        "attractions_with_photo_percent": round((quality_stats["with_photo"] / total * 100), 2) if total else 0,
-        "descriptions_with_min_paragraphs_percent": round(
-            (quality_stats["with_min_paragraphs"] / total * 100), 2
-        )
+        "attractions_with_photo_percent": round((with_photo / total * 100), 2) if total else 0,
+        "descriptions_with_min_paragraphs_percent": round((with_min_paragraphs / total * 100), 2)
         if total
         else 0,
-        "high_confidence_percent": round((quality_stats["high_confidence"] / total * 100), 2) if total else 0,
+        "high_confidence_percent": round((high_confidence / total * 100), 2) if total else 0,
+        "low_confidence_percent": round((low_confidence / total * 100), 2) if total else 0,
+        "list_like_descriptions_percent": round((list_like_descriptions / total * 100), 2) if total else 0,
+        "rejected_descriptions_percent": round((rejected_descriptions / total * 100), 2) if total else 0,
+        "ai_errors_count": ai_errors,
         "processed_files": processed_files_count,
         "successful_files": success_files_count,
         "file_success_percent": round((success_files_count / processed_files_count * 100), 2)
