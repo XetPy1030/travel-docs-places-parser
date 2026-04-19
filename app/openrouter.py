@@ -51,6 +51,8 @@ class OpenRouterClient:
         api_key: str,
         model: str = "meta-llama/llama-3.1-70b-instruct",
         max_retries: int = 2,
+        request_timeout_sec: float = 45.0,
+        max_extract_input_chars: int = 12000,
         client: Optional[OpenAI] = None,
         sleep_fn: Optional[Callable[[float], None]] = None,
         log_fn: Optional[Callable[..., None]] = None,
@@ -65,6 +67,8 @@ class OpenRouterClient:
         self.token_usage = 0
         self.prompt_version = "v2-structured-extraction"
         self.max_retries = max(0, max_retries)
+        self.request_timeout_sec = max(5.0, float(request_timeout_sec))
+        self.max_extract_input_chars = max(2000, int(max_extract_input_chars))
         self.failed_requests = 0
         self._sleep = sleep_fn or time.sleep
         self._log = log_fn or print
@@ -86,6 +90,7 @@ class OpenRouterClient:
                     messages=messages,
                     max_tokens=max_tokens,
                     temperature=temperature,
+                    timeout=self.request_timeout_sec,
                 )
 
                 # Track token usage
@@ -122,6 +127,15 @@ class OpenRouterClient:
             for row in table.get("rows", []):
                 tables_text += " | ".join(str(cell) for cell in row) + "\n"
 
+        # Hard cap input to avoid very long/slow requests and timeouts
+        source_text = text.strip()
+        combined = f"{source_text}\n{tables_text}".strip()
+        if len(combined) > self.max_extract_input_chars:
+            combined = combined[: self.max_extract_input_chars]
+            self._log(
+                f"  Текст документа обрезан до {self.max_extract_input_chars} символов для ускорения запроса"
+            )
+
         prompt = f"""
 Вы эксперт по извлечению информации о достопримечательностях из документов о районах Татарстана.
 
@@ -129,9 +143,7 @@ class OpenRouterClient:
 ФАЙЛ: {filename}
 
 ТЕКСТ ДОКУМЕНТА:
-{text}
-
-{tables_text}
+{combined}
 
 ЗАДАЧА:
 Извлеките ВСЕ достопримечательности, памятники, музеи, храмы, мечети, природные объекты из этого документа.
@@ -169,7 +181,7 @@ class OpenRouterClient:
             {"role": "user", "content": prompt},
         ]
 
-        response = self.chat_completion(messages, max_tokens=3500)
+        response = self.chat_completion(messages, max_tokens=1600)
 
         # Parse JSON from response
         attractions = parse_json_response_from_llm(response, log_fn=self._log)
