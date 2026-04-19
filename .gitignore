@@ -38,7 +38,10 @@ dist/
 *~
 .DS_Store
 
-# Сгенерированные и рабочие файлы парсера (см. main.py)
+# Сгенерированные и рабочие файлы парсера (см. main.py; по умолчанию каталог output/)
+output/*
+!output/.gitkeep
+# при запуске с --output-dir . или старыми артефактами в корне
 processing_cache.json
 processing_state.json
 processing_errors.json

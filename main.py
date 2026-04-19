@@ -678,7 +678,10 @@ class AttractionProcessor:
         resume: bool = False,
         max_files: int = 0,
         only_district: str = "",
+        output_dir: str = "output",
     ):
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         self.parser = DOCXParser()
         self.ai_client = OpenRouterClient(openrouter_api_key, model=model)
         self.image_searcher = ImageSearcher()
@@ -686,9 +689,9 @@ class AttractionProcessor:
         self.processed_count = 0
         self.processed_files_count = 0
         self.success_files_count = 0
-        self.cache_file = "processing_cache.json"
-        self.state_file = "processing_state.json"
-        self.error_file = "processing_errors.json"
+        self.cache_file = str(self.output_dir / "processing_cache.json")
+        self.state_file = str(self.output_dir / "processing_state.json")
+        self.error_file = str(self.output_dir / "processing_errors.json")
         self.skip_photos = skip_photos
         self.min_description_paragraphs = min_description_paragraphs
         self.retry_count = retry_count
@@ -1023,7 +1026,10 @@ class AttractionProcessor:
                 
                 # Save progress every 5 files
                 if len(all_attractions) % 5 == 0:
-                    self.save_progress(all_attractions, "progress_backup.json")
+                    self.save_progress(
+                        all_attractions,
+                        str(self.output_dir / "progress_backup.json"),
+                    )
         
         return all_attractions
     
@@ -1074,7 +1080,10 @@ class AttractionProcessor:
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
-        quality_file = f"{Path(output_file).stem}_quality_report.json"
+        out_path = Path(output_file)
+        quality_file = str(
+            out_path.with_name(f"{out_path.stem}_quality_report.json")
+        )
         with open(quality_file, "w", encoding="utf-8") as f:
             json.dump(quality, f, ensure_ascii=False, indent=2)
         self._save_errors()
@@ -1097,7 +1106,17 @@ def main():
     
     parser = argparse.ArgumentParser(description='Парсинг достопримечательностей из DOCX файлов')
     parser.add_argument('--input', '-i', required=True, help='Папка с подпапками районов')
-    parser.add_argument('--output', '-o', default='attractions.json', help='Выходной JSON файл')
+    parser.add_argument(
+        '--output-dir',
+        default='output',
+        help='Каталог для кэша, state, ошибок и относительного --output',
+    )
+    parser.add_argument(
+        '--output',
+        '-o',
+        default='attractions.json',
+        help='Выходной JSON (если путь не абсолютный — внутри --output-dir)',
+    )
     parser.add_argument('--api-key', required=True, help='OpenRouter API ключ')
     parser.add_argument('--model', default='meta-llama/llama-3.1-70b-instruct', 
                        help='Модель OpenRouter')
@@ -1107,9 +1126,19 @@ def main():
     parser.add_argument('--skip-photos', action='store_true', help='Пропустить поиск фотографий')
     parser.add_argument('--min-description-paragraphs', type=int, default=2, help='Минимум абзацев в HTML-описании')
     parser.add_argument('--retry-count', type=int, default=2, help='Количество повторов для регенерации описания')
-    parser.add_argument('--resume', action='store_true', help='Продолжить обработку по processing_state.json')
+    parser.add_argument(
+        '--resume',
+        action='store_true',
+        help='Продолжить обработку по processing_state.json в --output-dir',
+    )
     
     args = parser.parse_args()
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    out_arg = Path(args.output)
+    output_path = out_arg if out_arg.is_absolute() else output_dir / out_arg
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path_str = str(output_path)
     
     # Load districts data if provided
     districts_json = None
@@ -1123,7 +1152,8 @@ def main():
     print(f"ПАРСЕР ДОСТОПРИМЕЧАТЕЛЬНОСТЕЙ ТАТАРСТАНА")
     print(f"{'='*70}")
     print(f"Входная папка: {args.input}")
-    print(f"Выходной файл: {args.output}")
+    print(f"Каталог вывода: {output_dir}")
+    print(f"Выходной файл: {output_path_str}")
     print(f"Модель AI: {args.model}")
     print(f"Поиск фото: {'выкл' if args.skip_photos else 'вкл'}")
     print(f"Resume: {'да' if args.resume else 'нет'}")
@@ -1139,6 +1169,7 @@ def main():
         resume=args.resume,
         max_files=max(0, args.max_files),
         only_district=args.only_district,
+        output_dir=str(output_dir),
     )
     
     # Process all files
@@ -1149,7 +1180,7 @@ def main():
         return
     
     # Export results
-    processor.export_json(attractions, args.output)
+    processor.export_json(attractions, output_path_str)
     
     print(f"\nВсего обработано: {processor.processed_count} достопримечательностей")
     print(f"Запросов к AI: {processor.ai_client.request_count}")
