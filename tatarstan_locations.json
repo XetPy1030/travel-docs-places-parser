@@ -1,0 +1,742 @@
+[
+  {
+    "model": "locations.District",
+    "pk": 1,
+    "fields": {
+      "name": "Агрызский",
+      "administrative_center": 1
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 1,
+    "fields": {
+      "name": "Агрыз",
+      "type": "city",
+      "district": 1
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 2,
+    "fields": {
+      "name": "Азнакаевский",
+      "administrative_center": 2
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 2,
+    "fields": {
+      "name": "Азнакаево",
+      "type": "city",
+      "district": 2
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 3,
+    "fields": {
+      "name": "Аксубаевский",
+      "administrative_center": 3
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 3,
+    "fields": {
+      "name": "Аксубаево",
+      "type": "town",
+      "district": 3
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 4,
+    "fields": {
+      "name": "Актанышский",
+      "administrative_center": 4
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 4,
+    "fields": {
+      "name": "Актаныш",
+      "type": "village",
+      "district": 4
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 5,
+    "fields": {
+      "name": "Алексеевский",
+      "administrative_center": 5
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 5,
+    "fields": {
+      "name": "Алексеевское",
+      "type": "town",
+      "district": 5
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 6,
+    "fields": {
+      "name": "Алькеевский",
+      "administrative_center": 6
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 6,
+    "fields": {
+      "name": "Базарные Матаки",
+      "type": "village",
+      "district": 6
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 7,
+    "fields": {
+      "name": "Альметьевский",
+      "administrative_center": 7
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 7,
+    "fields": {
+      "name": "Альметьевск",
+      "type": "city",
+      "district": 7
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 8,
+    "fields": {
+      "name": "Апастовский",
+      "administrative_center": 8
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 8,
+    "fields": {
+      "name": "Апастово",
+      "type": "town",
+      "district": 8
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 9,
+    "fields": {
+      "name": "Арский",
+      "administrative_center": 9
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 9,
+    "fields": {
+      "name": "Арск",
+      "type": "town",
+      "district": 9
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 10,
+    "fields": {
+      "name": "Атнинский",
+      "administrative_center": 10
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 10,
+    "fields": {
+      "name": "Большая Атня",
+      "type": "village",
+      "district": 10
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 11,
+    "fields": {
+      "name": "Бавлинский",
+      "administrative_center": 11
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 11,
+    "fields": {
+      "name": "Бавлы",
+      "type": "city",
+      "district": 11
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 12,
+    "fields": {
+      "name": "Балтасинский",
+      "administrative_center": 12
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 12,
+    "fields": {
+      "name": "Балтаси",
+      "type": "town",
+      "district": 12
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 13,
+    "fields": {
+      "name": "Бугульминский",
+      "administrative_center": 13
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 13,
+    "fields": {
+      "name": "Бугульма",
+      "type": "city",
+      "district": 13
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 14,
+    "fields": {
+      "name": "Буинский",
+      "administrative_center": 14
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 14,
+    "fields": {
+      "name": "Буинск",
+      "type": "city",
+      "district": 14
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 15,
+    "fields": {
+      "name": "Верхнеуслонский",
+      "administrative_center": 15
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 15,
+    "fields": {
+      "name": "Верхний Услон",
+      "type": "village",
+      "district": 15
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 16,
+    "fields": {
+      "name": "Высокогорский",
+      "administrative_center": 16
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 16,
+    "fields": {
+      "name": "Высокая Гора",
+      "type": "village",
+      "district": 16
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 17,
+    "fields": {
+      "name": "Дрожжановский",
+      "administrative_center": 17
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 17,
+    "fields": {
+      "name": "Старое Дрожжаное",
+      "type": "village",
+      "district": 17
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 18,
+    "fields": {
+      "name": "Елабужский",
+      "administrative_center": 18
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 18,
+    "fields": {
+      "name": "Елабуга",
+      "type": "city",
+      "district": 18
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 19,
+    "fields": {
+      "name": "Заинский",
+      "administrative_center": 19
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 19,
+    "fields": {
+      "name": "Заинск",
+      "type": "city",
+      "district": 19
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 20,
+    "fields": {
+      "name": "Зеленодольский",
+      "administrative_center": 20
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 20,
+    "fields": {
+      "name": "Зеленодольск",
+      "type": "city",
+      "district": 20
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 21,
+    "fields": {
+      "name": "Кайбицкий",
+      "administrative_center": 21
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 21,
+    "fields": {
+      "name": "Большие Кайбицы",
+      "type": "village",
+      "district": 21
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 22,
+    "fields": {
+      "name": "Камско-Устьинский",
+      "administrative_center": 22
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 22,
+    "fields": {
+      "name": "Камское Устье",
+      "type": "town",
+      "district": 22
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 23,
+    "fields": {
+      "name": "Кукморский",
+      "administrative_center": 23
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 23,
+    "fields": {
+      "name": "Кукмор",
+      "type": "town",
+      "district": 23
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 24,
+    "fields": {
+      "name": "Лаишевский",
+      "administrative_center": 24
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 24,
+    "fields": {
+      "name": "Лаишево",
+      "type": "town",
+      "district": 24
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 25,
+    "fields": {
+      "name": "Лениногорский",
+      "administrative_center": 25
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 25,
+    "fields": {
+      "name": "Лениногорск",
+      "type": "city",
+      "district": 25
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 26,
+    "fields": {
+      "name": "Мамадышский",
+      "administrative_center": 26
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 26,
+    "fields": {
+      "name": "Мамадыш",
+      "type": "city",
+      "district": 26
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 27,
+    "fields": {
+      "name": "Менделеевский",
+      "administrative_center": 27
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 27,
+    "fields": {
+      "name": "Менделеевск",
+      "type": "city",
+      "district": 27
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 28,
+    "fields": {
+      "name": "Мензелинский",
+      "administrative_center": 28
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 28,
+    "fields": {
+      "name": "Мензелинск",
+      "type": "city",
+      "district": 28
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 29,
+    "fields": {
+      "name": "Муслюмовский",
+      "administrative_center": 29
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 29,
+    "fields": {
+      "name": "Муслюмово",
+      "type": "village",
+      "district": 29
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 30,
+    "fields": {
+      "name": "Нижнекамский",
+      "administrative_center": 30
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 30,
+    "fields": {
+      "name": "Нижнекамск",
+      "type": "city",
+      "district": 30
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 31,
+    "fields": {
+      "name": "Новошешминский",
+      "administrative_center": 31
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 31,
+    "fields": {
+      "name": "Новошешминск",
+      "type": "village",
+      "district": 31
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 32,
+    "fields": {
+      "name": "Нурлатский",
+      "administrative_center": 32
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 32,
+    "fields": {
+      "name": "Нурлат",
+      "type": "city",
+      "district": 32
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 33,
+    "fields": {
+      "name": "Пестречинский",
+      "administrative_center": 33
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 33,
+    "fields": {
+      "name": "Пестрецы",
+      "type": "village",
+      "district": 33
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 34,
+    "fields": {
+      "name": "Рыбно-Слободский",
+      "administrative_center": 34
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 34,
+    "fields": {
+      "name": "Рыбная Слобода",
+      "type": "village",
+      "district": 34
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 35,
+    "fields": {
+      "name": "Сабинский",
+      "administrative_center": 35
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 35,
+    "fields": {
+      "name": "Богатые Сабы",
+      "type": "town",
+      "district": 35
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 36,
+    "fields": {
+      "name": "Сармановский",
+      "administrative_center": 36
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 36,
+    "fields": {
+      "name": "Сарманово",
+      "type": "village",
+      "district": 36
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 37,
+    "fields": {
+      "name": "Спасский",
+      "administrative_center": 37
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 37,
+    "fields": {
+      "name": "Болгар",
+      "type": "town",
+      "district": 37
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 38,
+    "fields": {
+      "name": "Тетюшский",
+      "administrative_center": 38
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 38,
+    "fields": {
+      "name": "Тетюши",
+      "type": "city",
+      "district": 38
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 39,
+    "fields": {
+      "name": "Тукаевский",
+      "administrative_center": 45
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 40,
+    "fields": {
+      "name": "Тюлячинский",
+      "administrative_center": 40
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 40,
+    "fields": {
+      "name": "Тюлячи",
+      "type": "village",
+      "district": 40
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 41,
+    "fields": {
+      "name": "Черемшанский",
+      "administrative_center": 41
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 41,
+    "fields": {
+      "name": "Черемшан",
+      "type": "village",
+      "district": 41
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 42,
+    "fields": {
+      "name": "Чистопольский",
+      "administrative_center": 42
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 42,
+    "fields": {
+      "name": "Чистополь",
+      "type": "city",
+      "district": 42
+    }
+  },
+  {
+    "model": "locations.District",
+    "pk": 43,
+    "fields": {
+      "name": "Ютазинский",
+      "administrative_center": 43
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 43,
+    "fields": {
+      "name": "Уруссу",
+      "type": "town",
+      "district": 43
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 44,
+    "fields": {
+      "name": "Казань",
+      "type": "city",
+      "district": null
+    }
+  },
+  {
+    "model": "locations.Settlement",
+    "pk": 45,
+    "fields": {
+      "name": "Набережные Челны",
+      "type": "city",
+      "district": null
+    }
+  }
+]
