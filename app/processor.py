@@ -24,6 +24,7 @@ class AttractionProcessor:
 
     CACHE_VERSION = "2.0"
     CONFIDENCE_THRESHOLD = 0.7
+    MAX_ATTRACTIONS_PER_FILE = 60
 
     def __init__(
         self,
@@ -200,11 +201,25 @@ class AttractionProcessor:
         If LLM returned one list-like object, split it into multiple attractions.
         """
         expanded: List[Dict[str, Any]] = []
+        # Expand only when model clearly returned one list-like aggregate record.
+        if len(attractions_data) != 1:
+            return attractions_data
+
+        first = attractions_data[0]
+        first_name = str(first.get("name", "")).strip()
+        try:
+            first_conf = float(first.get("confidence", 0.5))
+        except (TypeError, ValueError):
+            first_conf = 0.5
+        if first_conf >= self.CONFIDENCE_THRESHOLD and not re.match(r"^\d+[.)-]?\s+", first_name):
+            return attractions_data
+
         for item in attractions_data:
             name = item.get("name", "")
             brief = item.get("brief_description", "")
             source_fragment = item.get("source_fragment", "")
-            blob = "\n".join([name, brief, source_fragment, source_text[:1200]])
+            # Do not mix full source_text here: it leads to duplicate explosion.
+            blob = "\n".join([name, brief, source_fragment])
             list_lines = []
             for line in blob.splitlines():
                 line = line.strip()
@@ -239,6 +254,73 @@ class AttractionProcessor:
 
             expanded.append(item)
         return expanded
+
+    def _deduplicate_attractions(self, attractions_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Remove duplicates by normalized (name, settlement) and keep best confidence.
+        """
+        dedup: Dict[tuple[str, str], Dict[str, Any]] = {}
+        for item in attractions_data:
+            name = str(item.get("name", "")).strip()
+            settlement = str(item.get("settlement", "")).strip()
+            if not name:
+                continue
+            key = (re.sub(r"\s+", " ", name).lower(), re.sub(r"\s+", " ", settlement).lower())
+            existing = dedup.get(key)
+            if not existing:
+                dedup[key] = item
+                continue
+            try:
+                current_conf = float(item.get("confidence", 0.0))
+            except (TypeError, ValueError):
+                current_conf = 0.0
+            try:
+                existing_conf = float(existing.get("confidence", 0.0))
+            except (TypeError, ValueError):
+                existing_conf = 0.0
+            if current_conf > existing_conf:
+                dedup[key] = item
+        return list(dedup.values())
+
+    def _deduplicate_final_attractions(self, attractions: List[Attraction]) -> List[Attraction]:
+        """
+        Deduplicate final objects across files (same district/name/settlement).
+        Keep the record with higher confidence, then longer description.
+        """
+        dedup: Dict[tuple[str, str, str], Attraction] = {}
+
+        for attr in attractions:
+            name_key = re.sub(r"\s+", " ", attr.name.strip()).lower()
+            district_key = re.sub(r"\s+", " ", attr.district.strip()).lower()
+            settlement_key = re.sub(r"\s+", " ", attr.settlement.strip()).lower()
+            key = (district_key, name_key, settlement_key)
+
+            current_conf = 0.0
+            try:
+                current_conf = float(attr.additional_info.get("confidence", 0.0))
+            except (TypeError, ValueError):
+                current_conf = 0.0
+            current_desc_len = len(attr.description_html or "")
+
+            existing = dedup.get(key)
+            if not existing:
+                dedup[key] = attr
+                continue
+
+            existing_conf = 0.0
+            try:
+                existing_conf = float(existing.additional_info.get("confidence", 0.0))
+            except (TypeError, ValueError):
+                existing_conf = 0.0
+            existing_desc_len = len(existing.description_html or "")
+
+            if current_conf > existing_conf:
+                dedup[key] = attr
+                continue
+            if current_conf == existing_conf and current_desc_len > existing_desc_len:
+                dedup[key] = attr
+
+        return list(dedup.values())
 
     def process_file(self, file_path: str, district_folder: str) -> List[Attraction]:
         """Process single DOCX file"""
@@ -296,6 +378,14 @@ class AttractionProcessor:
                 cleaned_attractions_data.append(cleaned)
 
         cleaned_attractions_data = self._expand_list_like_attractions(cleaned_attractions_data, text)
+        cleaned_attractions_data = self._deduplicate_attractions(cleaned_attractions_data)
+        if len(cleaned_attractions_data) > self.MAX_ATTRACTIONS_PER_FILE:
+            self._log_error(
+                file_path,
+                "attractions_overflow",
+                f"Слишком много объектов после извлечения ({len(cleaned_attractions_data)}), ограничено до {self.MAX_ATTRACTIONS_PER_FILE}",
+            )
+            cleaned_attractions_data = cleaned_attractions_data[: self.MAX_ATTRACTIONS_PER_FILE]
 
         if not cleaned_attractions_data:
             self._log_error(file_path, "validation_error", "После валидации не осталось валидных объектов")
@@ -465,7 +555,11 @@ class AttractionProcessor:
                         str(self.output_dir / "progress_backup.json"),
                     )
 
-        return all_attractions
+        final_attractions = self._deduplicate_final_attractions(all_attractions)
+        removed = len(all_attractions) - len(final_attractions)
+        if removed > 0:
+            self._log(f"\n  Удалено дублей на финальном этапе: {removed}")
+        return final_attractions
 
     def save_progress(self, attractions: List[Attraction], filename: str) -> None:
         """Save intermediate results"""
